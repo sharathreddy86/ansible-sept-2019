@@ -1,0 +1,37 @@
+---
+  - hosts: all
+    become: true
+    tasks:
+      - name: Installing GIT
+        yum:
+          name: ['git', 'httpd', 'java-1.8.0-openjdk-devel', 'docker']
+          state: present
+
+      - name: Correcting java version
+        alternatives:
+          name: java
+          path: /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+      - name: Correcting javac version
+        alternatives:
+          name: javac
+          path: /usr/lib/jvm/java-1.8.0-openjdk.x86_64/bin/javac
+      - name: Starting Apache
+        service:
+          name: "{{item}}"
+          state: started
+          enabled: yes
+        with_items:
+          - docker 
+          - httpd
+      - name: Coping code to deployment directory
+        copy:
+          src: ./scripts/index.html
+          dest: /var/www/html/
+        notify:
+          - Restarting Apache
+    handlers:
+      - name: Restarting Apache
+        service:
+          name: httpd
+          state: restarted
+
