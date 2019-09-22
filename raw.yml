@@ -1,0 +1,8 @@
+
+---
+ - hosts: ubuntu
+   become: true
+   gather_facts: no 
+   tasks:
+    - name: Installing Python On Ubuntu
+      raw: apt-get install python3 -y

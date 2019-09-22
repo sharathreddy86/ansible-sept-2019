@@ -1,0 +1,39 @@
+---
+ - hosts: maven
+   become: true
+   vars_files:
+    - ./vars.yml
+   tasks:
+    - name: Install java and git
+      yum:
+        name: ['git', 'java-{{java_version}}-openjdk-devel']
+        state: present
+    - name: Upadting JAVA version
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/jre-{{java_version}}-openjdk.x86_64/bin/java
+    - name: Upadting JAVAC version
+      alternatives:
+        name: javac
+        path: /usr/lib/jvm/java-{{java_version}}-openjdk.x86_64/bin/javac
+    - name: Downloading maven Tar file
+      get_url:
+        url: http://www-eu.apache.org/dist/maven/maven-{{maven_mazor_version}}/{{maven_version}}/binaries/apache-maven-{{maven_version}}-bin.tar.gz
+        dest: /opt/apache-maven-{{maven_version}}-bin.tar.gz
+    - name: Extracting  Maven archive
+      command: chdir=/usr/share /bin/tar xvf /opt/apache-maven-{{maven_version}}-bin.tar.gz -C /opt/ creates=/opt/apache-maven-{{maven_version}}
+    - name: Symlink install directory
+      file: src=/opt/apache-maven-{{maven_version}}/bin/mvn path=/usr/bin/mvn state=link
+    - name: adding Env Variables
+      lineinfile:
+        path: /home/ec2-user/.bashrc
+        line: "{{item.line}}"
+      with_items:
+        - { line: 'M2_HOME=/opt/apache-maven-{{maven_version}}' }
+        - { line: 'PATH=$PATH:$M2_HOME/bin' }
+        - { line: 'export PATH=$M2:$PATH'}
+      notify:
+        - Restarting .bashrc
+   handlers:
+    - name: Restarting .bashrc
+      shell: "source /home/ec2-user/.bashrc"

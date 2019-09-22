@@ -1,0 +1,15 @@
+---
+  - hosts: all
+    become: true
+    tasks:
+      - name: Installing GIT On Readhat
+        yum:
+          name: ['git', 'httpd', 'docker']
+          state: present 
+        when: ansible_os_family == "RedHat"
+          
+      - name: Installing GIT on Ubuntu
+        apt:
+          name: ['git', 'apache2', 'docker.io']
+          state: present
+        when: ansible_os_family == "Debian"
