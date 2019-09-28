@@ -1,0 +1,61 @@
+---
+- hosts: tomcat
+  become: True
+  tasks:
+    - name: Installing Java-1.8.0
+      yum:
+        name: java-1.8.0-openjdk-devel
+        state: present
+    - name: Selecting Java-1.8.0 Version
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+    - name: Selecting Javac-1.8.0 Version
+      alternatives:
+        name: javac
+        path: /usr/lib/jvm/java-1.8.0-openjdk.x86_64/bin/javac
+    - name: Craeating Tomcat Group
+      group:
+        name: tomcat
+    - name: Craeating Tomcat User
+      user:
+        name: tomcat
+        group: tomcat
+        home: /usr/share/tomcat
+        createhome: no
+    - name: Downloading Tomcat Tar file
+      get_url:
+        url: https://www-us.apache.org/dist/tomcat/tomcat-8/v8.5.46/bin/apache-tomcat-8.5.46.tar.gz
+        dest: /opt/apache-tomcat-8.5.46.tar.gz
+    - name: Extracting  Tomcat archive
+      command: chdir=/usr/share /bin/tar xvf /opt/apache-tomcat-8.5.46.tar.gz -C /opt/ creates=/opt/apache-tomcat-8.5.46
+    - name: Symlink install directory
+      file: src=/opt/apache-tomcat-8.5.46 path=/usr/share/tomcat state=link
+    - name: changing owner ship of tomcat
+      file: path=/usr/share/tomcat/ owner=tomcat group=tomcat state=directory recurse=yes
+    - name: coping Context.xml
+      copy: src=./context.xml dest=/usr/share/tomcat/webapps/manager/META-INF/
+      notify: 
+        - restart tomcat
+    - name: Creating users
+      copy: src=tomcat-users.xml dest=/usr/share/tomcat/conf/
+      notify: 
+        - restart tomcat
+    - name: Running tomcat as service
+      copy: src=./tomcat.sh dest=/etc/init.d/tomcat mode=0755
+    - name: Coping war to tomcat
+      copy: 
+        src: /home/ubuntu/sample-app/target/myapp-1.0.17-snapshot.war
+        dest: /usr/share/tomcat/webapps/
+      notify: 
+        - restart tomcat  
+    - name: starting tomcat
+      service:
+        name: tomcat
+        state: started
+        enabled: yes
+  handlers:
+    - name: restart tomcat
+      service:
+        name: tomcat
+        state: restarted
